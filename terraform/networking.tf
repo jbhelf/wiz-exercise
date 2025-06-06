@@ -26,12 +26,26 @@ resource "aws_subnet" "public" {
 }
 
 # 3) Private subnet (for EKS nodes)
+#    Now assigns public IPs so node group can launch
 resource "aws_subnet" "private" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_subnet_cidr
-  availability_zone = "${var.aws_region}a"
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.private_subnet_cidr
+  availability_zone       = "${var.aws_region}a"
+  map_public_ip_on_launch = true
   tags = {
     Name = "${var.name_prefix}-private-subnet"
+  }
+}
+
+# 3b) Private subnet #2 (for EKS nodes)
+#     Also assigns public IPs
+resource "aws_subnet" "private2" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.private_subnet_cidr_2
+  availability_zone       = "${var.aws_region}b"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "${var.name_prefix}-private-subnet-2"
   }
 }
 
@@ -61,6 +75,12 @@ resource "aws_route" "public_internet_route" {
 # 7) Associate the public subnet with the public route table
 resource "aws_route_table_association" "public_assoc" {
   subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+# 7b) Associate the second private subnet with the public route table (if needed)
+resource "aws_route_table_association" "private2_assoc" {
+  subnet_id      = aws_subnet.private2.id
   route_table_id = aws_route_table.public.id
 }
 

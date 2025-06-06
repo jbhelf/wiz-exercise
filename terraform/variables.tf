@@ -66,3 +66,9 @@ variable "name_prefix" {
   type        = string
   default     = "wizex"
 }
+
+variable "private_subnet_cidr_2" {
+  description = "CIDR block for second private subnet (EKS nodes)"
+  type        = string
+  default     = "10.0.3.0/24"
+}

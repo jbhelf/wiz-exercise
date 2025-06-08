@@ -58,6 +58,12 @@ jobs:
           docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $FULL_IMAGE
           echo "FULL_IMAGE=$FULL_IMAGE" >> $GITHUB_ENV
 
+      - name: Ensure ECR repository exists
+        run: |
+          IMAGE_REPO_NAME=${{ secrets.ECR_REPO }}
+          aws ecr describe-repositories --repository-names $IMAGE_REPO_NAME || \
+            aws ecr create-repository --repository-name $IMAGE_REPO_NAME
+
       - name: Push to ECR
         run: |
           docker push $FULL_IMAGE

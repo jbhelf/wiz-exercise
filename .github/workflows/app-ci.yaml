@@ -74,4 +74,4 @@ jobs:
           AWS_REGION: us-west-2
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-          kubectl set image deployment/tasky tasky-container=$FULL_IMAGE -n default
+          kubectl set image deployment/tasky tasky=$FULL_IMAGE -n default

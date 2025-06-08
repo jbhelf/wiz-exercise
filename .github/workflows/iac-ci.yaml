@@ -53,8 +53,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
-          path: terraform/tfplan.txt
+          path: tfplan.txt
 
       - name: Show Plan Output (for PRs)
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: cat terraform/tfplan.txt
+        run: cat tfplan.txt

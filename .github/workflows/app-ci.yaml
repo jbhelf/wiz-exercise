@@ -37,7 +37,7 @@ jobs:
       - name: Build Docker Image
         id: build-image
         run: |
-          IMAGE_REPO_NAME=tasky-app
+          IMAGE_REPO_NAME=${{ secrets.ECR_REPO }}
           IMAGE_TAG=${GITHUB_SHA::8}
           # point to the correct Dockerfile path and context
           docker build \
@@ -48,7 +48,7 @@ jobs:
       - name: Tag Docker Image for ECR
         id: tag-image
         run: |
-          IMAGE_REPO_NAME=tasky-app
+          IMAGE_REPO_NAME=${{ secrets.ECR_REPO }}
           IMAGE_TAG=${GITHUB_SHA::8}
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           FULL_TAG=$ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG

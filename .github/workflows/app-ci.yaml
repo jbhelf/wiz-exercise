@@ -61,8 +61,14 @@ jobs:
       - name: Bootstrap ALB Service Account
         run: kubectl apply -f k8s/alb-sa.yaml
 
-      - name: Deploy Tasky manifests
+      - name: Deploy Tasky manifests & update image
         run: |
           kubectl apply -f k8s/app.yaml
-          kubectl rollout restart deployment/tasky -n default
+          IMAGE_TAG=${{ github.sha }}
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          REPO=${{ secrets.ECR_REPO }}
+          kubectl set image deployment/tasky \
+            tasky=$REGISTRY/$REPO:$IMAGE_TAG \
+            -n default
           kubectl rollout status deployment/tasky -n default
+        shell: bash

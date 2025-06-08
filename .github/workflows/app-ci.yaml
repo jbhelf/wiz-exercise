@@ -61,14 +61,19 @@ jobs:
       - name: Bootstrap ALB Service Account
         run: kubectl apply -f k8s/alb-sa.yaml
 
-      - name: Deploy Tasky manifests & update image
+      - name: Deploy to EKS
+        env:
+          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }} 
+          AWS_REGION: us-west-2
         run: |
-          kubectl apply -f k8s/app.yaml
-          IMAGE_TAG=${{ github.sha }}
-          REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          REPO=${{ secrets.ECR_REPO }}
-          kubectl set image deployment/tasky \
-            tasky=$REGISTRY/$REPO:$IMAGE_TAG \
-            -n default
-          kubectl rollout status deployment/tasky -n default
-        shell: bash
+          aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
+          # apply your application + ingress manifests:
+          kubectl apply -f k8s/app.yaml -f k8s/ingress.yaml
+          
+      - name: Update Kubernetes Deployment (kubectl set image)
+        env:
+          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }} 
+          AWS_REGION: us-west-2
+        run: |
+          aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
+          kubectl set image deployment/tasky tasky=$FULL_IMAGE -n default

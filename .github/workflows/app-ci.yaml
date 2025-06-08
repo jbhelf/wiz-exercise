@@ -72,16 +72,29 @@ jobs:
       - name: Update Kubernetes Deployment
         env:
           EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
-          AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_REGION:  ${{ secrets.AWS_DEFAULT_REGION }}
+        shell: bash
         run: |
-          aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-
+          aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
           IMAGE_TAG=${{ github.sha }}
           REGISTRY=${{ steps.login-ecr.outputs.registry }}
           REPO=${{ secrets.ECR_REPO }}
           FULL_IMAGE="$REGISTRY/$REPO:$IMAGE_TAG"
-          echo "Updating tasky deployment to use image: $FULL_IMAGE"
-
-          kubectl set image deployment/tasky tasky=$FULL_IMAGE -n default
-
-          kubectl rollout status deployment/tasky -n default
+          echo "DEBUG: Full image → $FULL_IMAGE"
+          echo "DEBUG: Pods before update"
+          kubectl get pods -n default -o wide
+          echo "DEBUG: Deployment before update"
+          kubectl describe deployment tasky -n default
+          echo "DEBUG: Patching Deployment image…"
+          kubectl set image deployment/tasky tasky="$FULL_IMAGE" -n default
+          echo "DEBUG: Pods immediately after patch"
+          kubectl get pods -n default -o wide
+          echo "DEBUG: Waiting for rollout to complete (timeout 2m)…"
+          kubectl rollout status deployment/tasky -n default --timeout=2m
+          echo "DEBUG: Cluster events"
+          kubectl get events -n default --sort-by='.lastTimestamp'
+          echo "DEBUG: Collecting logs from Tasky pods…"
+          for POD in $(kubectl get pods -n default -l app=tasky -o name); do
+            echo "=== Logs for $POD ==="
+            kubectl logs "$POD" -n default || true
+          done

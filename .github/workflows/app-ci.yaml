@@ -32,38 +32,47 @@ jobs:
             -f docker/tasky-main/Dockerfile \
             -t tasky-app:$IMAGE_TAG \
             docker/tasky-main
+
+          # tag to the real ECR repo name from your secret
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          REPO_NAME=${{ secrets.ECR_REPO }}        # wizex-tasky-repo
           docker tag tasky-app:$IMAGE_TAG \
-            ${{ steps.login-ecr.outputs.registry }}/tasky-app:$IMAGE_TAG
+            $REGISTRY/$REPO_NAME:$IMAGE_TAG
 
       - name: Push to ECR
         run: |
           IMAGE_TAG=${{ github.sha }}
-          docker push ${{ steps.login-ecr.outputs.registry }}/tasky-app:$IMAGE_TAG
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          REPO_NAME=${{ secrets.ECR_REPO }}
+          docker push $REGISTRY/$REPO_NAME:$IMAGE_TAG
 
-      - name: Update kubeconfig
+      - name: Configure kubectl for EKS
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ secrets.AWS_DEFAULT_REGION }}
 
-      - name: Configure kubectl for EKS
+      - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig \
             --name "${{ secrets.EKS_CLUSTER }}" \
             --region "${{ secrets.AWS_DEFAULT_REGION }}"
 
-      - name: Initialize ALB Service Account
+      - name: Bootstrap ALB Service Account
         run: kubectl apply -f k8s/alb-sa.yaml
 
-      - name: Initialize AWS LB Controller RBAC
+      - name: Install AWS LB Controller RBAC
         run: kubectl apply -f k8s/rbac.yaml
 
-      - name: Deploy Tasky app manifests
+      - name: Deploy Tasky manifests
         run: kubectl apply -f k8s/app.yaml
 
       - name: Update Kubernetes Deployment Image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          kubectl set image deployment/tasky tasky-container=\
-          ${{ steps.login-ecr.outputs.registry }}/tasky-app:$IMAGE_TAG -n default 
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          REPO_NAME=${{ secrets.ECR_REPO }}
+          kubectl set image deployment/tasky \
+            tasky-container=$REGISTRY/$REPO_NAME:$IMAGE_TAG \
+            -n default

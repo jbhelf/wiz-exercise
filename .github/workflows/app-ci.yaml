@@ -2,12 +2,14 @@ name: "Tasky App Deployment"
 
 on:
   push:
-    branches: ["main"]
-    paths:
-      - 'tasky/**'
-      - 'docker/**'
-      - 'k8s/**'
-      - 'Dockerfile'
+    branches:
+      - main #temporarily adding trigger to main for debugging purposes
+    # branches: ["main"]
+    # paths:
+    #   - 'tasky/**'
+    #   - 'docker/**'
+    #   - 'k8s/**'
+    #   - 'Dockerfile'
   pull_request:
     branches: ["main"]
 

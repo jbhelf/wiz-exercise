@@ -74,10 +74,8 @@ jobs:
           echo "DEBUG: Registry = $REGISTRY"
           echo "DEBUG: Repo name = $REPO_NAME"
           echo "DEBUG: Full image = $REGISTRY/$REPO_NAME:$IMAGE_TAG"
-
           echo "DEBUG: Current deployments in 'default' namespace:"
           kubectl get deployments -n default
-
           echo "DEBUG: Describe 'tasky' deployment before update:"
           kubectl describe deployment tasky -n default
 
@@ -86,11 +84,8 @@ jobs:
             tasky=$REGISTRY/$REPO_NAME:$IMAGE_TAG \
             -n default
 
+          echo "DEBUG: Describe 'tasky' deployment after update:"
+          kubectl describe deployment tasky -n default
           echo "DEBUG: Waiting for rollout to finish..."
           kubectl rollout status deployment/tasky -n default
-
-          echo "DEBUG: Pods status after rollout:"
-          kubectl get pods -n default
-
-          echo "DEBUG: Recent events in 'default' namespace:"
-          kubectl get events -n default
+        shell: bash

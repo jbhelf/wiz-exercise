@@ -27,7 +27,7 @@ jobs:
       - name: Build & tag Docker image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          docker build -t tasky-app:$IMAGE_TAG .
+          docker build -t tasky-app:$IMAGE_TAG docker/
           docker tag tasky-app:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/tasky-app:$IMAGE_TAG
 
       - name: Push to ECR

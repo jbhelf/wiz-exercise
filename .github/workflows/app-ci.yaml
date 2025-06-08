@@ -1,80 +1,63 @@
-name: "Tasky App Deployment"
+name: Build & Deploy Tasky
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    branches: ["main"]
 
 jobs:
-  build-and-deploy:
+  build-and-deploy-tasky:
     name: Build & Deploy Tasky
     runs-on: ubuntu-latest
-    env:
-      ECR_REPO: ${{ secrets.ECR_REPO }}
-      AWS_REGION: us-west-2
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+          aws-region:            ${{ secrets.AWS_DEFAULT_REGION }}
 
-      - name: Login to Amazon ECR
+      - name: Login to ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build Docker Image
-        id: build-image
+      - name: Build & tag Docker image
         run: |
-          IMAGE_REPO_NAME=${{ secrets.ECR_REPO }}
-          IMAGE_TAG=${GITHUB_SHA::8}
-          docker build \
-            -t $IMAGE_REPO_NAME:$IMAGE_TAG \
-            -f ./docker/tasky-main/Dockerfile ./docker/tasky-main
-          echo "IMAGE=$IMAGE_REPO_NAME:$IMAGE_TAG" >> $GITHUB_ENV
-
-      - name: Tag Docker Image for ECR
-        id: tag-image
-        run: |
-          IMAGE_REPO_NAME=${{ secrets.ECR_REPO }}
-          IMAGE_TAG=${GITHUB_SHA::8}
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          FULL_IMAGE=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
-          docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $FULL_IMAGE
-          echo "FULL_IMAGE=$FULL_IMAGE" >> $GITHUB_ENV
-
-      - name: Ensure ECR repository exists
-        run: |
-          aws ecr describe-repositories --repository-names ${{ secrets.ECR_REPO }} \
-            || aws ecr create-repository --repository-name ${{ secrets.ECR_REPO }}
+          IMAGE_TAG=${{ github.sha }}
+          docker build -t tasky-app:$IMAGE_TAG .
+          docker tag tasky-app:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/tasky-app:$IMAGE_TAG
 
       - name: Push to ECR
-        run: docker push $FULL_IMAGE
-
-      - name: Initialization for AWS LB Controller SA
-        run: kubectl apply --validate=false -f k8s/alb-sa.yaml
-
-      - name: Initialization for AWS LB Controller RBAC
-        run: kubectl apply --validate=false -f k8s/rbac.yaml
-
-      - name: Deploy to EKS
-        env:
-          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
         run: |
-          aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-          kubectl apply --validate=false -f k8s/app.yaml -f k8s/ingress.yaml
+          IMAGE_TAG=${{ github.sha }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/tasky-app:$IMAGE_TAG
 
-      - name: Update Kubernetes Deployment
-        env:
-          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
+      - name: Configure kubectl for EKS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Update kubeconfig
         run: |
-          aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-          kubectl set image deployment/tasky tasky=$FULL_IMAGE -n default
+          aws eks update-kubeconfig \
+            --name "${{ secrets.EKS_CLUSTER }}" \
+            --region "${{ secrets.AWS_DEFAULT_REGION }}"
+
+      - name: Bootstrap ALB Service Account
+        run: kubectl apply -f k8s/alb-sa.yaml
+
+      - name: Install AWS LB Controller RBAC
+        run: kubectl apply -f k8s/rbac.yaml
+
+      - name: Deploy Tasky app manifests
+        run: kubectl apply -f k8s/app.yaml
+
+      - name: Update Kubernetes Deployment Image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          kubectl set image deployment/tasky tasky-container=${{ steps.login-ecr.outputs.registry }}/tasky-app:$IMAGE_TAG -n default

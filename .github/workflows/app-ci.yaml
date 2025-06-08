@@ -62,30 +62,7 @@ jobs:
         run: kubectl apply -f k8s/alb-sa.yaml
 
       - name: Deploy Tasky manifests
-        run: kubectl apply -f k8s/app.yaml
-
-      - name: Update Kubernetes Deployment Image
         run: |
-          set -x
-          IMAGE_TAG=${{ github.sha }}
-          REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          REPO_NAME=${{ secrets.ECR_REPO }}
-
-          echo "DEBUG: Registry = $REGISTRY"
-          echo "DEBUG: Repo name = $REPO_NAME"
-          echo "DEBUG: Full image = $REGISTRY/$REPO_NAME:$IMAGE_TAG"
-          echo "DEBUG: Current deployments in 'default' namespace:"
-          kubectl get deployments -n default
-          echo "DEBUG: Describe 'tasky' deployment before update:"
-          kubectl describe deployment tasky -n default
-
-          # perform the image update
-          kubectl set image deployment/tasky \
-            tasky=$REGISTRY/$REPO_NAME:$IMAGE_TAG \
-            -n default
-
-          echo "DEBUG: Describe 'tasky' deployment after update:"
-          kubectl describe deployment tasky -n default
-          echo "DEBUG: Waiting for rollout to finish..."
+          kubectl apply -f k8s/app.yaml
+          kubectl rollout restart deployment/tasky -n default
           kubectl rollout status deployment/tasky -n default
-        shell: bash

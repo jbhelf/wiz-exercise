@@ -60,17 +60,17 @@ jobs:
         run: docker push $FULL_IMAGE
 
       - name: Initialization for AWS LB Controller SA
-        run: kubectl apply --server-side -f k8s/alb-sa.yaml
+        run: kubectl apply --validate=false -f k8s/alb-sa.yaml
 
       - name: Initialization for AWS LB Controller RBAC
-        run: kubectl apply --server-side -f k8s/rbac.yaml
+        run: kubectl apply --validate=false -f k8s/rbac.yaml
 
       - name: Deploy to EKS
         env:
           EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-          kubectl apply --server-side -f k8s/app.yaml -f k8s/ingress.yaml
+          kubectl apply --validate=false -f k8s/app.yaml -f k8s/ingress.yaml
 
       - name: Update Kubernetes Deployment
         env:

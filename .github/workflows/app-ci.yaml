@@ -17,6 +17,9 @@ jobs:
   build-and-deploy:
     name: Build & Deploy Tasky
     runs-on: ubuntu-latest
+    env:
+      ECR_REPO: ${{ secrets.ECR_REPO }}
+      AWS_REGION: us-west-2
     # Removed: environment: production
 
     steps:
@@ -51,26 +54,18 @@ jobs:
           IMAGE_REPO_NAME=${{ secrets.ECR_REPO }}
           IMAGE_TAG=${GITHUB_SHA::8}
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          FULL_TAG=$ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
-          docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $FULL_TAG
-          echo "::set-output name=FULL_IMAGE::$FULL_TAG"
+          FULL_IMAGE=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+          docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $FULL_IMAGE
+          echo "FULL_IMAGE=$FULL_IMAGE" >> $GITHUB_ENV
 
       - name: Push to ECR
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          FULL_TAG=$ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/tasky-app:${GITHUB_SHA::8}
-          docker push $FULL_TAG
+          docker push $FULL_IMAGE
 
       - name: Update Kubernetes Deployment (kubectl set image)
         env:
           EKS_CLUSTER: wizex-eks-cluster
           AWS_REGION: us-west-2
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          FULL_TAG=$ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/tasky-app:${GITHUB_SHA::8}
-
-          # Update kubeconfig for EKS
           aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-
-          # Patch Deployment “tasky” to use the new image
-          kubectl set image deployment/tasky tasky-container=$FULL_TAG -n default
+          kubectl set image deployment/tasky tasky-container=$FULL_IMAGE -n default

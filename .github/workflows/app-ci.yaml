@@ -68,11 +68,11 @@ jobs:
         run: |
           docker push $FULL_IMAGE
 
-      - name: Initialization for AWS LB Controller SA
-        run: kubectl apply -f k8s/alb-sa.yaml
+      # - name: Initialization for AWS LB Controller SA
+      #   run: kubectl apply -f k8s/alb-sa.yaml
       
-      - name: Initialization for AWS LB Controller RBAC
-        run: kubectl apply -f k8s/rbac.yaml
+      # - name: Initialization for AWS LB Controller RBAC
+      #   run: kubectl apply -f k8s/rbac.yaml
 
       - name: Deploy to EKS
         env:

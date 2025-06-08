@@ -67,13 +67,21 @@ jobs:
           AWS_REGION: us-west-2
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-          # apply your application + ingress manifests:
-          kubectl apply -f k8s/app.yaml -f k8s/ingress.yaml
           
-      - name: Update Kubernetes Deployment (kubectl set image)
+          kubectl apply -f k8s/app.yaml -f k8s/ingress.yaml
+      - name: Update Kubernetes Deployment
         env:
-          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }} 
-          AWS_REGION: us-west-2
+          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
+          AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
+
+          IMAGE_TAG=${{ github.sha }}
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          REPO=${{ secrets.ECR_REPO }}
+          FULL_IMAGE="$REGISTRY/$REPO:$IMAGE_TAG"
+          echo "Updating tasky deployment to use image: $FULL_IMAGE"
+
           kubectl set image deployment/tasky tasky=$FULL_IMAGE -n default
+
+          kubectl rollout status deployment/tasky -n default

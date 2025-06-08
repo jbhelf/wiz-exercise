@@ -70,6 +70,9 @@ jobs:
           IMAGE_TAG=${{ github.sha }}
           REGISTRY=${{ steps.login-ecr.outputs.registry }}
           REPO_NAME=${{ secrets.ECR_REPO }}
+          # use the container name "tasky" as defined in your Deployment
           kubectl set image deployment/tasky \
-            tasky-container=$REGISTRY/$REPO_NAME:$IMAGE_TAG \
+            tasky=$REGISTRY/$REPO_NAME:$IMAGE_TAG \
             -n default
+          # wait for rollout to finish
+          kubectl rollout status deployment/tasky -n default

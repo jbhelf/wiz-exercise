@@ -36,11 +36,11 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "mongo_backups" {
 
 # MongoDB VM instance
 resource "aws_instance" "mongo_vm" {
-  ami                          = data.aws_ssm_parameter.ubuntu_ami.value
-  instance_type                = var.mongo_instance_type
-  subnet_id                    = values(aws_subnet.public)[0].id  # pick the first public subnet
-  associate_public_ip_address  = true
-  key_name                     = var.ssh_key_name
+  ami                         = data.aws_ssm_parameter.ubuntu_ami.value
+  instance_type               = var.mongo_instance_type
+  subnet_id                   = values(aws_subnet.public)[0].id # pick the first public subnet
+  associate_public_ip_address = true
+  key_name                    = var.ssh_key_name
 
   tags = {
     Name = "${var.name_prefix}-mongo-vm"

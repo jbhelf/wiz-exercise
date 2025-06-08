@@ -18,7 +18,7 @@ data "aws_iam_policy_document" "config_assume" {
 resource "aws_iam_role" "config_role" {
   name               = "${var.name_prefix}-config-role"
   assume_role_policy = data.aws_iam_policy_document.config_assume.json
-  tags = { Name = "${var.name_prefix}-config-role" }
+  tags               = { Name = "${var.name_prefix}-config-role" }
 }
 
 # Attach managed policy for Config

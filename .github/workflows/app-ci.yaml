@@ -3,15 +3,10 @@ name: "Tasky App Deployment"
 on:
   push:
     branches:
-      - main #temporarily adding trigger to main for debugging purposes
-    # branches: ["main"]
-    # paths:
-    #   - 'tasky/**'
-    #   - 'docker/**'
-    #   - 'k8s/**'
-    #   - 'Dockerfile'
+      - main
   pull_request:
-    branches: ["main"]
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
@@ -20,7 +15,6 @@ jobs:
     env:
       ECR_REPO: ${{ secrets.ECR_REPO }}
       AWS_REGION: us-west-2
-    # Removed: environment: production
 
     steps:
       - name: Checkout repository
@@ -29,20 +23,19 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
+          aws-region:            ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker Image
         id: build-image
         run: |
           IMAGE_REPO_NAME=${{ secrets.ECR_REPO }}
           IMAGE_TAG=${GITHUB_SHA::8}
-          # point to the correct Dockerfile path and context
           docker build \
             -t $IMAGE_REPO_NAME:$IMAGE_TAG \
             -f ./docker/tasky-main/Dockerfile ./docker/tasky-main
@@ -60,33 +53,28 @@ jobs:
 
       - name: Ensure ECR repository exists
         run: |
-          IMAGE_REPO_NAME=${{ secrets.ECR_REPO }}
-          aws ecr describe-repositories --repository-names $IMAGE_REPO_NAME || \
-            aws ecr create-repository --repository-name $IMAGE_REPO_NAME
+          aws ecr describe-repositories --repository-names ${{ secrets.ECR_REPO }} \
+            || aws ecr create-repository --repository-name ${{ secrets.ECR_REPO }}
 
       - name: Push to ECR
-        run: |
-          docker push $FULL_IMAGE
+        run: docker push $FULL_IMAGE
 
       - name: Initialization for AWS LB Controller SA
-        run: kubectl apply -f k8s/alb-sa.yaml
-      
+        run: kubectl apply --server-side -f k8s/alb-sa.yaml
+
       - name: Initialization for AWS LB Controller RBAC
-        run: kubectl apply -f k8s/rbac.yaml
+        run: kubectl apply --server-side -f k8s/rbac.yaml
 
       - name: Deploy to EKS
         env:
-          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }} 
-          AWS_REGION: us-west-2
+          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-          # apply your application + ingress manifests:
-          kubectl apply -f k8s/app.yaml -f k8s/ingress.yaml
+          kubectl apply --server-side -f k8s/app.yaml -f k8s/ingress.yaml
 
-      - name: Update Kubernetes Deployment (kubectl set image)
+      - name: Update Kubernetes Deployment
         env:
-          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }} 
-          AWS_REGION: us-west-2
+          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
           kubectl set image deployment/tasky tasky=$FULL_IMAGE -n default

@@ -62,9 +62,6 @@ jobs:
       - name: Bootstrap ALB Service Account
         run: kubectl apply -f k8s/alb-sa.yaml
 
-      - name: Install AWS LB Controller RBAC
-        run: kubectl apply -f k8s/rbac.yaml
-
       - name: Deploy Tasky manifests
         run: kubectl apply -f k8s/app.yaml
 

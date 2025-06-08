@@ -1,8 +1,7 @@
-#######################################
+########################################
 # ecr.tf
-#
-# 1) Create an AWS ECR repository for Tasky
-#######################################
+# ECR repository for Tasky Docker images
+########################################
 
 resource "aws_ecr_repository" "tasky" {
   name                 = "${var.name_prefix}-tasky-repo"
@@ -14,6 +13,6 @@ resource "aws_ecr_repository" "tasky" {
 }
 
 output "tasky_ecr_url" {
-  description = "The URI of the Tasky ECR repository"
+  description = "URI for Tasky Docker images"
   value       = aws_ecr_repository.tasky.repository_url
 }

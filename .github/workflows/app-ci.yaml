@@ -68,9 +68,18 @@ jobs:
         run: |
           docker push $FULL_IMAGE
 
+      - name: Deploy to EKS
+        env:
+          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }} 
+          AWS_REGION: us-west-2
+        run: |
+          aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
+          # apply your application + ingress manifests:
+          kubectl apply -f k8s/app.yaml -f k8s/ingress.yaml
+
       - name: Update Kubernetes Deployment (kubectl set image)
         env:
-          EKS_CLUSTER: wizex-eks-cluster
+          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }} 
           AWS_REGION: us-west-2
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION

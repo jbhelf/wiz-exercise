@@ -73,6 +73,6 @@ jobs:
       - name: Update Kubernetes Deployment Image
         run: |
           set -xe
-          aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER }} --region ${{ secrets.AWS_REGION }}
+          aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER }} --region ${{ secrets.AWS_DEFAULT_REGION }}
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml

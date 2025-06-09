@@ -69,54 +69,16 @@ jobs:
           aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
           
           kubectl apply -f k8s/app.yaml -f k8s/ingress.yaml
-      - name: Update & Debug Kubernetes Deployment
+      - name: Update Kubernetes Deployment Image
         env:
           EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
           AWS_REGION:  ${{ secrets.AWS_DEFAULT_REGION }}
-        shell: bash
+          IMAGE_TAG:   ${{ github.sha }}
+          REGISTRY:    ${{ steps.login-ecr.outputs.registry }}
+          REPO_NAME:   ${{ secrets.ECR_REPO }}
+          FULL_IMAGE:  ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:${{ github.sha }}
         run: |
           aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
-          IMAGE_TAG=${{ github.sha }}
-          REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          REPO=${{ secrets.ECR_REPO }}
-          FULL_IMAGE="$REGISTRY/$REPO:$IMAGE_TAG"
-
-          echo ">>> DEBUG: Full image = $FULL_IMAGE"
-          echo ">>> DEBUG: Current ReplicaSets"
-          kubectl get rs -n default -o wide
-
-          echo ">>> DEBUG: Current Pods"
-          kubectl get pods -n default -o wide --show-labels
-
-          echo ">>> DEBUG: Describing current Deployment"
-          kubectl describe deployment/tasky -n default
-
-          echo ">>> DEBUG: Patching image…"
+          echo ">>> Updating tasky deployment to image: $FULL_IMAGE"
           kubectl set image deployment/tasky tasky="$FULL_IMAGE" -n default
-
-          echo ">>> DEBUG: Post-patch ReplicaSets"
-          kubectl get rs -n default -o wide
-
-          echo ">>> DEBUG: Post-patch Pods"
-          kubectl get pods -n default -o wide --show-labels
-
-          echo ">>> DEBUG: Describing new ReplicaSet"
-          NEW_RS=$(kubectl get rs -n default --selector=app=tasky -o jsonpath='{.items[-1].metadata.name}')
-          kubectl describe rs "$NEW_RS" -n default
-
-          echo ">>> DEBUG: Waiting rollout (timeout 3m)…"
-          kubectl rollout status deployment/tasky -n default --timeout=3m || true
-
-          echo ">>> DEBUG: Final Pod states"
-          kubectl get pods -n default -o wide
-
-          echo ">>> DEBUG: Pod details + events + logs"
-          for POD in $(kubectl get pods -n default -l app=tasky -o name); do
-            echo "--- describe $POD ---"
-            kubectl describe "$POD" -n default
-            echo "--- logs for $POD ---"
-            kubectl logs "$POD" -n default || true
-          done
-
-          echo ">>> DEBUG: Namespace events"
-          kubectl get events -n default --sort-by='.lastTimestamp'
+          kubectl rollout status deployment/tasky -n default --timeout=2m

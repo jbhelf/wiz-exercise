@@ -57,22 +57,11 @@ jobs:
           aws eks update-kubeconfig \
             --name "${{ secrets.EKS_CLUSTER }}" \
             --region "${{ secrets.AWS_DEFAULT_REGION }}"
-
-      - name: Bootstrap ALB Service Account
-        run: kubectl apply -f k8s/alb-sa.yaml
-
-      - name: Deploy to EKS
-        env:
-          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }} 
-          AWS_REGION: us-west-2
-        run: |
-          aws eks update-kubeconfig --name $EKS_CLUSTER --region $AWS_REGION
-          
-          kubectl apply -f k8s/app.yaml -f k8s/ingress.yaml
           
       - name: Update Kubernetes Deployment Image
         run: |
-          set -xe
           aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER }} --region ${{ secrets.AWS_DEFAULT_REGION }}
+          kubectl apply -f k8s/alb-sa.yaml
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/ingress.yaml

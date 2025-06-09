@@ -12,12 +12,6 @@ resource "aws_eks_cluster" "this" {
     subnet_ids = values(aws_subnet.private)[*].id
   }
 
-  lifecycle {
-    ignore_changes = [
-      bootstrap_self_managed_addons
-    ]
-  }
-
   version = "1.30"
 
   tags = {

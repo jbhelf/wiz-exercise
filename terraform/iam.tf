@@ -121,3 +121,8 @@ resource "aws_security_group" "mongo_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+resource "aws_iam_role_policy_attachment" "eks_node_ecr_read" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}

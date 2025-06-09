@@ -70,12 +70,7 @@ jobs:
       - name: Validate wizexercise.txt
         run: |
           POD=$(kubectl get pods -l app=tasky -o jsonpath="{.items[0].metadata.name}")
-          CONTAINERS=$(kubectl get pod $POD -o jsonpath="{.spec.containers[*].name}")
-          for c in $CONTAINERS; do
-            if [[ "$c" == *tasky* ]]; then
-              CONTAINER="$c"
-              break
-            fi
-          done
-          echo "Found container: $CONTAINER"
-          kubectl exec -c "$CONTAINER" "$POD" -- cat /wizexercise.txt
+          echo "Containers in pod:" $(kubectl get pod $POD -o jsonpath="{.spec.containers[*].name}")
+          PRIMARY_CONTAINER=$(kubectl get pod $POD -o jsonpath="{.spec.containers[0].name}")
+          echo "Using container: $PRIMARY_CONTAINER"
+          kubectl exec -c "$PRIMARY_CONTAINER" "$POD" -- cat /wizexercise.txt

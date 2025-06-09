@@ -70,39 +70,9 @@ jobs:
           
           kubectl apply -f k8s/app.yaml -f k8s/ingress.yaml
           
-      - name: Update Kubernetes Deployment Image
-        env:
-          EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
-          AWS_REGION:  ${{ secrets.AWS_DEFAULT_REGION }}
-          IMAGE_TAG:   ${{ github.sha }}
-          REGISTRY:    ${{ steps.login-ecr.outputs.registry }}
-          REPO_NAME:   ${{ secrets.ECR_REPO }}
-          FULL_IMAGE:  ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:${{ github.sha }}
-        run: |
-          set -xe
-          aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
-          kubectl set image deployment/tasky tasky="$FULL_IMAGE" -n default
-      
-          kubectl rollout status deployment/tasky -n default --timeout=2m || (
-            echo "=== ROLLOUT FAILED ==="
-      
-            echo "--- Deployment ---"
-            kubectl describe deployment tasky -n default
-      
-            echo "--- ReplicaSets ---"
-            kubectl get rs -l app=tasky -n default -o wide
-      
-            echo "--- Pods ---"
-            kubectl get pods -l app=tasky -n default -o wide
-      
-            echo "--- Describe failing pods ---"
-            for pod in $(kubectl get pods -l app=tasky -n default \
-              -o jsonpath='{.items[?(@.status.phase!="Running")].metadata.name}'); do
-              echo ">>> $pod describe"
-              kubectl describe pod $pod -n default
-              echo ">>> $pod logs"
-              kubectl logs $pod -n default --all-containers --tail=100 || true
-            done
-      
-            exit 1
-          )
+          - name: Update Kubernetes Deployment Image
+          run: |
+            set -xe
+            aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
+            kubectl apply -f k8s/deployment.yaml
+            kubectl apply -f k8s/service.yaml

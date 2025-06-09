@@ -21,11 +21,11 @@ resource "aws_iam_role" "config_role" {
   tags               = { Name = "${var.name_prefix}-config-role" }
 }
 
-# Attach managed policy for Config
-resource "aws_iam_role_policy_attachment" "config_attach" {
-  role       = aws_iam_role.config_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSConfigRole"
-}
+# # Attach managed policy for Config
+# resource "aws_iam_role_policy_attachment" "config_attach" {
+#   role       = aws_iam_role.config_role.name
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSConfigRole"
+# }
 
 # S3 bucket to hold CloudTrail & Config data
 resource "aws_s3_bucket" "logs" {
@@ -74,12 +74,12 @@ resource "aws_cloudtrail" "this" {
 }
 
 # Config Delivery Channel pointing at same logs bucket
-resource "aws_config_delivery_channel" "this" {
-  name = "${var.name_prefix}-channel"
-  s3_bucket_name = aws_s3_bucket.logs.id
+# resource "aws_config_delivery_channel" "this" {
+#   name = "${var.name_prefix}-channel"
+#   s3_bucket_name = aws_s3_bucket.logs.id
 
-  depends_on = [aws_s3_bucket.logs]
-}
+#   depends_on = [aws_s3_bucket.logs]
+# }
 
 # Config Recorder to record all supported resources
 resource "aws_config_configuration_recorder" "this" {

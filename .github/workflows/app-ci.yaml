@@ -80,19 +80,29 @@ jobs:
           FULL_IMAGE:  ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:${{ github.sha }}
         run: |
           set -xe
-
           aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
           kubectl set image deployment/tasky tasky="$FULL_IMAGE" -n default
 
-          echo "=== POST-PATCH: Pod & RS STATUS ==="
+          echo "=== POST-PATCH: RS & POD SUMMARY ==="
           kubectl get rs -l app=tasky -n default -o wide
           kubectl get pods -l app=tasky -n default -o wide
-          echo "=== POST-PATCH: RECENT EVENTS ==="
-          kubectl get events -n default --field-selector involvedObject.kind=Deployment,involvedObject.name=tasky --sort-by='.metadata.creationTimestamp'
 
-          echo "=== POST-PATCH: CONTAINER LOGS (last 50 lines) ==="
+          echo "=== DEBUG: Describe each non-Ready Pod ==="
+          for pod in $(kubectl get pods -l app=tasky -n default \
+                      -o jsonpath='{.items[?(@.status.phase!="Running")].metadata.name}'); do
+            echo "--- describe pod $pod ---"
+            kubectl describe pod "$pod" -n default
+            echo "--- pod events for $pod ---"
+            kubectl get events -n default --field-selector involvedObject.name="$pod" \
+              --sort-by='.metadata.creationTimestamp'
+          done
+
+          echo "=== DEBUG: Describe Deployment ==="
+          kubectl describe deployment tasky -n default
+
+          echo "=== POD LOGS (last 50 lines) ==="
           for pod in $(kubectl get pods -l app=tasky -n default -o jsonpath='{.items[*].metadata.name}'); do
-            echo "--- Logs for $pod ---"
+            echo "--- logs for $pod ---"
             kubectl logs "$pod" -n default --all-containers --tail=50 || true
           done
 

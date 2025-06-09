@@ -82,28 +82,23 @@ jobs:
           set -xe
 
           aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
-
-          echo ">>> Patching deployment/tasky → $FULL_IMAGE"
           kubectl set image deployment/tasky tasky="$FULL_IMAGE" -n default
 
-          echo ">>> Waiting for rollout (timeout 2m)…"
           if ! kubectl rollout status deployment/tasky -n default --timeout=2m; then
             echo "=== ROLLOUT FAILED: dumping debug info ==="
 
-            echo "--- Deployment Status ---"
+            echo "--- Describe Deployment ---"
             kubectl describe deployment tasky -n default
 
             echo "--- ReplicaSets ---"
             kubectl get rs -l app=tasky -n default -o wide
 
-            echo "--- Pods ---"
-            kubectl get pods -l app=tasky -n default -o wide
+            echo "--- Describe Pods ---"
+            kubectl describe pods -l app=tasky -n default
 
-            echo "--- Describe non-Ready Pods ---"
-            for pod in $(kubectl get pods -l app=tasky -n default -o jsonpath='{.items[?(@.status.phase!="Running")].metadata.name}'); do
-              echo ">>> describe pod $pod <<<"
-              kubectl describe pod "$pod" -n default
-              echo ">>> logs for $pod <<<"
+            echo "--- Pod Logs (last 50 lines) ---"
+            for pod in $(kubectl get pods -l app=tasky -n default -o jsonpath='{.items[*].metadata.name}'); do
+              echo ">>> Logs for $pod <<<"
               kubectl logs "$pod" -n default --all-containers --tail=50 || true
             done
 

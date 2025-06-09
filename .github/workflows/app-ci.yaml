@@ -74,6 +74,11 @@ jobs:
           kubectl apply -f k8s/ingress.yaml
           kubectl apply -f k8s/admin-binding.yaml
 
+      - name: Debug deployed image
+        run: |
+          echo "Now pulling image =" \
+            $(kubectl get deployment tasky -o=jsonpath='{.spec.template.spec.containers[0].image}')
+
       - name: Validate wizexercise.txt
         run: |
           POD=$(kubectl get pods -l app=tasky -o jsonpath="{.items[0].metadata.name}")

@@ -82,28 +82,27 @@ jobs:
           set -xe
           aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
           kubectl set image deployment/tasky tasky="$FULL_IMAGE" -n default
-
-          echo "=== POST-PATCH: RS & POD SUMMARY ==="
-          kubectl get rs -l app=tasky -n default -o wide
-          kubectl get pods -l app=tasky -n default -o wide
-
-          echo "=== DEBUG: Describe each non-Ready Pod ==="
-          for pod in $(kubectl get pods -l app=tasky -n default \
-                      -o jsonpath='{.items[?(@.status.phase!="Running")].metadata.name}'); do
-            echo "--- describe pod $pod ---"
-            kubectl describe pod "$pod" -n default
-            echo "--- pod events for $pod ---"
-            kubectl get events -n default --field-selector involvedObject.name="$pod" \
-              --sort-by='.metadata.creationTimestamp'
-          done
-
-          echo "=== DEBUG: Describe Deployment ==="
-          kubectl describe deployment tasky -n default
-
-          echo "=== POD LOGS (last 50 lines) ==="
-          for pod in $(kubectl get pods -l app=tasky -n default -o jsonpath='{.items[*].metadata.name}'); do
-            echo "--- logs for $pod ---"
-            kubectl logs "$pod" -n default --all-containers --tail=50 || true
-          done
-
-          kubectl rollout status deployment/tasky -n default --timeout=2m
+      
+          kubectl rollout status deployment/tasky -n default --timeout=2m || (
+            echo "=== ROLLOUT FAILED ==="
+      
+            echo "--- Deployment ---"
+            kubectl describe deployment tasky -n default
+      
+            echo "--- ReplicaSets ---"
+            kubectl get rs -l app=tasky -n default -o wide
+      
+            echo "--- Pods ---"
+            kubectl get pods -l app=tasky -n default -o wide
+      
+            echo "--- Describe failing pods ---"
+            for pod in $(kubectl get pods -l app=tasky -n default \
+              -o jsonpath='{.items[?(@.status.phase!="Running")].metadata.name}'); do
+              echo ">>> $pod describe"
+              kubectl describe pod $pod -n default
+              echo ">>> $pod logs"
+              kubectl logs $pod -n default --all-containers --tail=100 || true
+            done
+      
+            exit 1
+          )

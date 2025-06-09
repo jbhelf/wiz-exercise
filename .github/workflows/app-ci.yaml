@@ -67,12 +67,18 @@ jobs:
           kubectl apply -f k8s/ingress.yaml
           kubectl apply -f k8s/admin-binding.yaml
 
+      - name: Wait for EKS Node Group Active
+        run: |
+          aws eks wait nodegroup-active \
+            --cluster-name "${{ secrets.EKS_CLUSTER }}" \
+            --nodegroup-name "wizex-eks-nodegroup"
+
+      - name: Wait for Kubernetes Nodes Ready
+        run: |
+          kubectl wait --for=condition=Ready nodes --all --timeout=120s
+
       - name: Validate wizexercise.txt
         run: |
-          # Wait for the Tasky deployment to finish rolling out
-          kubectl rollout status deployment/tasky --timeout=120s
-          # Wait for at least one pod to be Ready
-          kubectl wait --for=condition=Ready pod -l app=tasky --timeout=120s
           POD=$(kubectl get pods -l app=tasky -o jsonpath="{.items[0].metadata.name}")
           CONTAINERS=$(kubectl get pod $POD -o jsonpath="{.spec.containers[*].name}")
           for c in $CONTAINERS; do

@@ -14,9 +14,7 @@ resource "aws_eks_cluster" "this" {
 
   lifecycle {
     ignore_changes = [
-      bootstrap_self_managed_addons,
-      # Prevent Terraform from trying to update subnets (already correct on creation)
-      vpc_config[0].subnet_ids
+      bootstrap_self_managed_addons
     ]
   }
 

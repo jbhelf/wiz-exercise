@@ -61,6 +61,13 @@ jobs:
       - name: Update Kubernetes Deployment Image
         run: |
           aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER }} --region ${{ secrets.AWS_DEFAULT_REGION }}
+
+          IMAGE_TAG=${{ github.sha }}
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          REPO_NAME=${{ secrets.ECR_REPO }}
+
+          sed -i "s|image: .*|image: $REGISTRY/$REPO_NAME:$IMAGE_TAG|" k8s/deployment.yaml
+          
           kubectl apply -f k8s/alb-sa.yaml
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml

@@ -96,5 +96,4 @@ jobs:
         env:
           TF_VAR_ssh_private_key_path: $HOME/.ssh/id_rsa
         run: |
-            terraform import aws_eks_node_group.this wizex-eks-cluster:wizex-eks-nodegroup
             terraform apply -auto-approve

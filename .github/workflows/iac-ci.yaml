@@ -1,60 +1,63 @@
-# .github/workflows/iac-ci.yml
 name: "Infrastructure Building"
 
-on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+on: [ push, pull_request ]
+
+env:
+  AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
 jobs:
-  terraform:
-    name: Terraform Validate & Plan
+  terraform-validate:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./terraform
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v2
+        with: { terraform_version: "1.5.5" }
+      - uses: aws-actions/configure-aws-credentials@v2
         with:
-          fetch-depth: 2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: "1.5.5"
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+          aws-region:            ${{ env.AWS_REGION }}
+      - run: terraform init -input=false
+      - run: terraform validate
 
-      - name: Terraform Init
-        run: terraform init -input=false
+  terraform-fmt:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
 
-      - name: Terraform Validate
-        run: terraform validate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v2
+        with: { terraform_version: "1.5.5" }
+      - run: terraform fmt -check -recursive
 
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive
+  terraform-plan:
+    needs: [ terraform-validate ]  # only after validate passes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
 
-      - name: Terraform Plan
-        id: tfplan
-        run: |
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v2
+        with: { terraform_version: "1.5.5" }
+      - uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+      - run: |
+          terraform init -input=false
           terraform plan -out=tfplan.binary
           terraform show -no-color tfplan.binary > tfplan.txt
-
-      - name: Upload Plan Artifact (for PRs)
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'push'
         with:
           name: terraform-plan
           path: terraform/tfplan.txt
-
-      - name: Show Plan Output (for PRs)
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: cat tfplan.txt

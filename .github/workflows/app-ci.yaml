@@ -69,6 +69,10 @@ jobs:
 
       - name: Validate wizexercise.txt
         run: |
+          # Wait for the Tasky deployment to finish rolling out
+          kubectl rollout status deployment/tasky --timeout=120s
+          # Wait for at least one pod to be Ready
+          kubectl wait --for=condition=Ready pod -l app=tasky --timeout=120s
           POD=$(kubectl get pods -l app=tasky -o jsonpath="{.items[0].metadata.name}")
           CONTAINERS=$(kubectl get pod $POD -o jsonpath="{.spec.containers[*].name}")
           for c in $CONTAINERS; do

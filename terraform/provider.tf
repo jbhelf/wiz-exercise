@@ -8,14 +8,14 @@ terraform {
 
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
+      source = "hashicorp/aws"
       version = "~> 5.0"
     }
   }
 
   backend "s3" {
     bucket = "wizex-tfstate"
-    key    = "global/terraform.tfstate"
+    key = "global/terraform.tfstate"
     region = "us-west-2"
   }
 }

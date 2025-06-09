@@ -65,3 +65,9 @@ jobs:
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/ingress.yaml
+          kubectl apply -f k8s/admin-binding.yaml
+
+      - name: Validate wizexercise.txt
+        run: |
+          POD=$(kubectl get pods -l app=tasky -o jsonpath="{.items[0].metadata.name}")
+          kubectl exec $POD -- cat /wizexercise.txt

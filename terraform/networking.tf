@@ -5,8 +5,8 @@
 
 # 1) Main VPC
 resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_support   = true
+  cidr_block = var.vpc_cidr
+  enable_dns_support = true
   enable_dns_hostnames = true
 
   tags = {
@@ -27,10 +27,10 @@ resource "aws_internet_gateway" "igw" {
 resource "aws_subnet" "public" {
   for_each = toset(var.public_subnets)
 
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = each.value
+  vpc_id = aws_vpc.main.id
+  cidr_block = each.value
   map_public_ip_on_launch = true
-  availability_zone       = element(var.azs, index(var.public_subnets, each.value))
+  availability_zone = element(var.azs, index(var.public_subnets, each.value))
 
   tags = {
     Name = "${var.name_prefix}-public-${each.key}"
@@ -41,8 +41,8 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "private" {
   for_each = toset(var.private_subnets)
 
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = each.value
+  vpc_id = aws_vpc.main.id
+  cidr_block = each.value
   availability_zone = element(var.azs, index(var.private_subnets, each.value))
 
   tags = {
@@ -65,7 +65,7 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route_table_association" "public_association" {
-  for_each       = aws_subnet.public
-  subnet_id      = each.value.id
+  for_each = aws_subnet.public
+  subnet_id = each.value.id
   route_table_id = aws_route_table.public.id
 }

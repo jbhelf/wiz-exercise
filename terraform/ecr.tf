@@ -4,7 +4,7 @@
 ########################################
 
 resource "aws_ecr_repository" "tasky" {
-  name                 = "${var.name_prefix}-tasky-repo"
+  name = "${var.name_prefix}-tasky-repo"
   image_tag_mutability = "MUTABLE"
 
   tags = {
@@ -14,5 +14,5 @@ resource "aws_ecr_repository" "tasky" {
 
 output "tasky_ecr_url" {
   description = "URI for Tasky Docker images"
-  value       = aws_ecr_repository.tasky.repository_url
+  value = aws_ecr_repository.tasky.repository_url
 }

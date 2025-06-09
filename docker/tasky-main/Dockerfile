@@ -11,7 +11,7 @@ FROM alpine:3.17.0 as release
 
 WORKDIR /app
 COPY --from=build  /go/src/tasky/tasky .
-RUN echo "wiz exercise" > /wizexercise.txt
+RUN echo "Justin Helfman" > /wizexercise.txt
 COPY --from=build  /go/src/tasky/assets ./assets
 EXPOSE 8080
 ENTRYPOINT ["/app/tasky"]

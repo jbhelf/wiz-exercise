@@ -55,27 +55,27 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
 
 # Block all public access to logs bucket
 resource "aws_s3_bucket_public_access_block" "logs" {
-  bucket                  = aws_s3_bucket.logs.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
+  bucket = aws_s3_bucket.logs.id
+  block_public_acls = true
+  block_public_policy = true
+  ignore_public_acls = true
   restrict_public_buckets = true
 }
 
 # CloudTrail that writes into the logs bucket
 resource "aws_cloudtrail" "this" {
-  name                          = "${var.name_prefix}-trail"
-  s3_bucket_name                = aws_s3_bucket.logs.id
-  is_multi_region_trail         = true
+  name = "${var.name_prefix}-trail"
+  s3_bucket_name = aws_s3_bucket.logs.id
+  is_multi_region_trail = true
   include_global_service_events = true
-  enable_log_file_validation    = true
+  enable_log_file_validation = true
 
   depends_on = [aws_s3_bucket_public_access_block.logs]
 }
 
 # Config Delivery Channel pointing at same logs bucket
 resource "aws_config_delivery_channel" "this" {
-  name           = "${var.name_prefix}-channel"
+  name = "${var.name_prefix}-channel"
   s3_bucket_name = aws_s3_bucket.logs.id
 
   depends_on = [aws_s3_bucket.logs]
@@ -83,7 +83,7 @@ resource "aws_config_delivery_channel" "this" {
 
 # Config Recorder to record all supported resources
 resource "aws_config_configuration_recorder" "this" {
-  name     = "${var.name_prefix}-recorder"
+  name = "${var.name_prefix}-recorder"
   role_arn = aws_iam_role.config_role.arn
 
   recording_group {
@@ -93,6 +93,6 @@ resource "aws_config_configuration_recorder" "this" {
 
 # Ensure recorder is active
 resource "aws_config_configuration_recorder_status" "this" {
-  name       = aws_config_configuration_recorder.this.name
+  name = aws_config_configuration_recorder.this.name
   is_enabled = true
 }

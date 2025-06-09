@@ -66,13 +66,19 @@ jobs:
           REGISTRY=${{ steps.login-ecr.outputs.registry }}
           REPO_NAME=${{ secrets.ECR_REPO }}
 
-          sed -i "s|image: .*|image: $REGISTRY/$REPO_NAME:$IMAGE_TAG|" k8s/deployment.yaml
-          
+          kubectl set image deployment/tasky \
+            tasky=$REGISTRY/$REPO_NAME:$IMAGE_TAG \
+            --record
+
           kubectl apply -f k8s/alb-sa.yaml
-          kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/ingress.yaml
           kubectl apply -f k8s/admin-binding.yaml
+
+          # *** Replace the sed hack with an explicit set-image ***
+          kubectl set image deployment/tasky \
+            tasky=$REGISTRY/$REPO_NAME:$IMAGE_TAG \
+            --record
 
       - name: Debug deployed image
         run: |
@@ -81,8 +87,11 @@ jobs:
 
       - name: Validate wizexercise.txt
         run: |
+          # wait for your pod to actually be Scheduled and Running
+          kubectl wait --for=condition=Ready pod -l app=tasky --timeout=120s
           POD=$(kubectl get pods -l app=tasky -o jsonpath="{.items[0].metadata.name}")
-          echo "Containers in pod:" $(kubectl get pod $POD -o jsonpath="{.spec.containers[*].name}")
+          echo "Containers in pod:" \
+            $(kubectl get pod $POD -o jsonpath="{.spec.containers[*].name}")
           PRIMARY_CONTAINER=$(kubectl get pod $POD -o jsonpath="{.spec.containers[0].name}")
           echo "Using container: $PRIMARY_CONTAINER"
           kubectl exec -c "$PRIMARY_CONTAINER" "$POD" -- cat /wizexercise.txt

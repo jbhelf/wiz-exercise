@@ -20,6 +20,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ secrets.AWS_DEFAULT_REGION }}
 
+
+
       - name: Login to ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -44,6 +46,26 @@ jobs:
           REGISTRY=${{ steps.login-ecr.outputs.registry }}
           REPO_NAME=${{ secrets.ECR_REPO }}
           docker push $REGISTRY/$REPO_NAME:$IMAGE_TAG
+
+      - name: Debug Docker & ECR state
+        run: |
+          echo "=== Local Docker images ==="
+          docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}"
+
+          echo "=== ECR repos ==="
+          aws ecr describe-repositories --output table
+
+          echo "=== ECR images in $REPO ==="
+          aws ecr describe-images --repository-name "${{ secrets.ECR_REPO }}" \
+            --query 'imageDetails[].imageTags' --output table
+      - name: Debug EKS Nodes
+        run: |
+          aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER }} --region ${{ secrets.AWS_DEFAULT_REGION }}
+          echo "=== AWS EKS Nodegroups ==="
+          aws eks list-nodegroups --cluster-name ${{ secrets.EKS_CLUSTER }} --output table
+
+          echo "=== Kubernetes nodes ==="
+          kubectl get nodes -o wide || echo "No nodes registered in Kubernetes"
 
       - name: Configure kubectl for EKS
         uses: aws-actions/configure-aws-credentials@v2

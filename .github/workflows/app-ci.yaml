@@ -70,9 +70,9 @@ jobs:
           
           kubectl apply -f k8s/app.yaml -f k8s/ingress.yaml
           
-          - name: Update Kubernetes Deployment Image
-          run: |
-            set -xe
-            aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
-            kubectl apply -f k8s/deployment.yaml
-            kubectl apply -f k8s/service.yaml
+      - name: Update Kubernetes Deployment Image
+        run: |
+          set -xe
+          aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml

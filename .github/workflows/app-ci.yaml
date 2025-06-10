@@ -122,3 +122,4 @@ jobs:
           PRIMARY_CONTAINER=$(kubectl get pod $POD -o jsonpath="{.spec.containers[0].name}")
           echo "Using container: $PRIMARY_CONTAINER"
           kubectl exec -c "$PRIMARY_CONTAINER" "$POD" -- cat /wizexercise.txt
+          

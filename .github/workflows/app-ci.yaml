@@ -41,7 +41,7 @@ jobs:
             docker/tasky-main
 
           REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          REPO_NAME=${{ secrets.ECR_REPO }}
+          REPO_NAME=wizexercise-tasky-repo
           docker tag tasky-app:$IMAGE_TAG \
             $REGISTRY/$REPO_NAME:$IMAGE_TAG
 
@@ -49,7 +49,7 @@ jobs:
         run: |
           IMAGE_TAG=${{ github.sha }}
           REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          REPO_NAME=${{ secrets.ECR_REPO }}
+          REPO_NAME=wizexercise-tasky-repo
           docker push $REGISTRY/$REPO_NAME:$IMAGE_TAG
 
       - name: Debug Docker & ECR state
